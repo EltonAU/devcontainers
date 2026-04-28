@@ -1,0 +1,44 @@
+{
+  "name": "Claude/Codex C#",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "runArgs": [
+    "--cap-add=NET_ADMIN",
+    "--cap-add=NET_RAW"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "9.0",
+      "installUsingApt": false
+    }
+  },
+  "postCreateCommand": "sudo /usr/local/bin/init-firewall.sh",
+  "remoteUser": "node",
+  "containerUser": "node",
+  "workspaceFolder": "/workspace",
+  "workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
+  "mounts": [
+    "source=claude-credentials,target=/home/node/.claude,type=volume",
+    "source=codex-credentials,target=/home/node/.codex,type=volume",
+    "source=claude-bashhistory,target=/commandhistory,type=volume"
+  ],
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "anthropic.claude-code",
+        "eamodio.gitlens",
+        "ms-dotnettools.csdevkit",
+        "ms-dotnettools.csharp"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        }
+      }
+    }
+  }
+}
