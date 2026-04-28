@@ -1,0 +1,22 @@
+{
+  "id": "base",
+  "version": "1.0.0",
+  "name": "Claude/Codex Base",
+  "description": "Sandboxed VS Code dev container with Claude Code and OpenAI Codex CLI both preinstalled. Outbound network locked to Anthropic, OpenAI, npm, GitHub, and VS Code endpoints. Credentials persist via named Docker volumes.",
+  "documentationURL": "https://github.com/eltonau/devcontainers/blob/main/README.md",
+  "licenseURL": "https://github.com/eltonau/devcontainers/blob/main/LICENSE",
+  "options": {},
+  "platforms": [
+    "any"
+  ],
+  "publisher": "eltonau",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "codex",
+    "openai",
+    "anthropic",
+    "ai",
+    "sandbox"
+  ]
+}
