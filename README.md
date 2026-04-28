@@ -1,4 +1,4 @@
-# Claude Devcontainers
+# AI Sandbox Devcontainers
 
 Reusable VS Code Dev Container templates for sandboxed AI coding agents — **both Claude Code and OpenAI Codex CLI** are preinstalled in every template. Pick whichever you want per session by typing `claude` or `codex`.
 
