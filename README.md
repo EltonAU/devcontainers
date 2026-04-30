@@ -59,17 +59,33 @@ To extend the allowlist for your project, edit `init-firewall.sh` in your projec
 
 This repo is intentionally low-maintenance:
 
-- Push to `main` → GitHub Actions republishes all templates.
+- Releases are manual — no auto-publish on push (see [Releasing](#releasing) below).
 - Claude Code and Codex versions are pinned via the `CLAUDE_CODE_VERSION` and `CODEX_VERSION` Dockerfile ARGs. Bump intentionally.
 - Diff against [Anthropic's reference](https://github.com/anthropics/claude-code/tree/main/.devcontainer) periodically (a few times a year) to pull in their improvements.
+
+## Releasing
+
+The workflow is `workflow_dispatch` only — pushing code never publishes by itself. To cut a release:
+
+1. **Bump the `version` field** in the affected template's `src/<template>/devcontainer-template.json`. Follow semver:
+   - `1.0.0 → 1.0.1` for a fix (firewall domain added, version pin patched).
+   - `1.0.0 → 1.1.0` for an addition (new VS Code extension, new tool installed).
+   - `1.0.0 → 2.0.0` for a breaking change (mount path renamed, default user changed).
+2. Commit + push the version bump.
+3. **GitHub → Actions → Release Templates → Run workflow** (against the default branch). Takes ~30s.
+4. Verify the new version tag appears at https://github.com/EltonAU?tab=packages.
+
+After publishing, both `1.0.0` (the old tag) and `1.0.1` (the new tag) coexist on ghcr.io. Anyone pinned to `:1.0.0` keeps it; new consumers pulling `:latest` get `:1.0.1`.
+
+**Changes that don't need a version bump or a workflow run:** README edits, LICENSE changes, comments in workflow YAML. Anything outside `src/<template>/` doesn't ship to ghcr.io.
 
 ## Adding a new language template
 
 1. Copy `src/csharp/` to `src/<lang>/`.
-2. Edit `devcontainer-template.json` (id, name, description, keywords).
+2. Edit `devcontainer-template.json` (id, name, description, keywords; start at `version: 1.0.0`).
 3. Edit `devcontainer.json` (replace `dotnet:2` Feature, swap VS Code extensions).
 4. Edit `init-firewall.sh` (replace NuGet domains with the new language's package registry).
-5. Push. The workflow publishes it.
+5. Commit, push, then trigger the workflow manually (see [Releasing](#releasing)).
 
 ## License
 
