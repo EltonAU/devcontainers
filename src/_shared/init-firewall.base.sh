@@ -21,10 +21,8 @@ else
     echo "No Docker DNS rules to restore"
 fi
 
-iptables -A OUTPUT -p udp --dport 53 -j ACCEPT
-iptables -A INPUT -p udp --sport 53 -j ACCEPT
-iptables -A OUTPUT -p tcp --dport 22 -j ACCEPT
-iptables -A INPUT -p tcp --sport 22 -m state --state ESTABLISHED -j ACCEPT
+iptables -A OUTPUT -p udp --dport 53 -d 127.0.0.11 -j ACCEPT
+iptables -A INPUT -p udp --sport 53 -s 127.0.0.11 -j ACCEPT
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
@@ -52,6 +50,25 @@ while read -r cidr; do
     ipset add allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
+echo "Fetching AWS IP ranges..."
+aws_ranges=$(curl -fsSL https://ip-ranges.amazonaws.com/ip-ranges.json)
+if [ -z "$aws_ranges" ]; then
+    echo "ERROR: Failed to fetch AWS IP ranges"
+    exit 1
+fi
+if ! echo "$aws_ranges" | jq -e '.prefixes' >/dev/null; then
+    echo "ERROR: AWS ip-ranges response missing .prefixes"
+    exit 1
+fi
+echo "Processing AWS IPs..."
+while read -r cidr; do
+    if [[ ! "$cidr" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}/[0-9]{1,2}$ ]]; then
+        echo "ERROR: Invalid CIDR from AWS ip-ranges: $cidr"
+        exit 1
+    fi
+    ipset add allowed-domains "$cidr"
+done < <(echo "$aws_ranges" | jq -r '.prefixes[] | select(.service=="AMAZON") | .ip_prefix' | aggregate -q)
+
 for domain in \
     "registry.npmjs.org" \
     "api.anthropic.com" \
@@ -63,7 +80,8 @@ for domain in \
     "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
-    "update.code.visualstudio.com"; do
+    "update.code.visualstudio.com" \
+    ; do
     echo "Resolving $domain..."
     ips=$(dig +noall +answer A "$domain" | awk '$4 == "A" {print $5}')
     if [ -z "$ips" ]; then
@@ -81,17 +99,8 @@ for domain in \
     done < <(echo "$ips")
 done
 
-HOST_IP=$(ip route | grep default | cut -d" " -f3)
-if [ -z "$HOST_IP" ]; then
-    echo "ERROR: Failed to detect host IP"
-    exit 1
-fi
-
-HOST_NETWORK=$(echo "$HOST_IP" | sed "s/\.[0-9]*$/.0\/24/")
-echo "Host network detected as: $HOST_NETWORK"
-
-iptables -A INPUT -s "$HOST_NETWORK" -j ACCEPT
-iptables -A OUTPUT -d "$HOST_NETWORK" -j ACCEPT
+# __TEMPLATE_DOMAINS_BLOCK_START__
+# __TEMPLATE_DOMAINS_BLOCK_END__
 
 iptables -P INPUT DROP
 iptables -P FORWARD DROP
@@ -118,4 +127,11 @@ if ! curl --connect-timeout 5 https://api.github.com/zen >/dev/null 2>&1; then
     exit 1
 else
     echo "Firewall verification passed - able to reach https://api.github.com as expected"
+fi
+
+if ! curl --connect-timeout 5 https://sts.amazonaws.com >/dev/null 2>&1; then
+    echo "ERROR: Firewall verification failed - unable to reach https://sts.amazonaws.com"
+    exit 1
+else
+    echo "Firewall verification passed - able to reach https://sts.amazonaws.com as expected"
 fi

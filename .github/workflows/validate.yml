@@ -1,0 +1,74 @@
+name: Validate Templates
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  validate:
+    name: Validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4.3.1
+
+      - name: Validate JSON files
+        run: |
+          set -euo pipefail
+          fail=0
+          while IFS= read -r f; do
+            if ! jq -e . "$f" >/dev/null 2>&1; then
+              echo "INVALID: $f"
+              fail=1
+            fi
+          done < <(find src -name '*.json')
+          [ $fail -eq 0 ]
+
+      - name: Shellcheck
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+          shellcheck src/_shared/init-firewall.base.sh scripts/assemble-templates.sh
+
+      - name: Assemble templates
+        run: bash scripts/assemble-templates.sh
+
+      - name: Shellcheck assembled output
+        run: |
+          for f in build/*/.devcontainer/init-firewall.sh; do
+            shellcheck "$f"
+          done
+
+      - name: Docker build (each template)
+        run: |
+          set -euo pipefail
+          for d in build/*/.devcontainer; do
+            template=$(basename "$(dirname "$d")")
+            echo "Building $template..."
+            docker build -t "devcontainer-test:$template" "$d"
+          done
+
+      - name: Firewall smoke test (base)
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --cap-add=NET_ADMIN --cap-add=NET_RAW \
+            --entrypoint /bin/bash \
+            devcontainer-test:base \
+            -c '
+              sudo /usr/local/bin/init-firewall.sh
+              # Allowed
+              curl --connect-timeout 5 -fsS https://api.github.com/zen >/dev/null
+              curl --connect-timeout 5 -fsS https://sts.amazonaws.com >/dev/null
+              # Blocked
+              if curl --connect-timeout 5 -fsS https://example.com >/dev/null 2>&1; then
+                echo "FAIL: example.com reachable"; exit 1
+              fi
+              # DNS exfil channel must be blocked (only Docker resolver allowed)
+              if dig +time=2 +tries=1 @8.8.8.8 google.com >/dev/null 2>&1; then
+                echo "FAIL: DNS to 8.8.8.8 succeeded"; exit 1
+              fi
+              echo "Smoke test passed"
+            '

@@ -27,6 +27,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
   jq \
   nano \
   vim \
+  curl \
+  wget \
   && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Ensure default node user has access to /usr/local/share
@@ -47,8 +49,12 @@ ENV DEVCONTAINER=true
 # Create workspace and config directories and set permissions.
 # /home/node/.claude and /home/node/.codex are pre-created so the named
 # Docker volumes pick up correct ownership on first mount.
-RUN mkdir -p /workspace /home/node/.claude /home/node/.codex && \
-  chown -R node:node /workspace /home/node/.claude /home/node/.codex
+RUN mkdir -p /workspace \
+      /home/node/.claude \
+      /home/node/.codex \
+      /home/node/.aws \
+      /home/node/.config/gh && \
+  chown -R node:node /workspace /home/node/.claude /home/node/.codex /home/node/.aws /home/node/.config
 
 WORKDIR /workspace
 
@@ -57,6 +63,18 @@ RUN ARCH=$(dpkg --print-architecture) && \
   wget "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
+
+ARG AWS_CLI_VERSION=2.34.43
+RUN ARCH_RAW=$(dpkg --print-architecture) && \
+  case "$ARCH_RAW" in \
+    amd64) AWS_ARCH=x86_64 ;; \
+    arm64) AWS_ARCH=aarch64 ;; \
+    *) echo "Unsupported arch: $ARCH_RAW" >&2; exit 1 ;; \
+  esac && \
+  curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-${AWS_ARCH}-${AWS_CLI_VERSION}.zip" -o /tmp/awscliv2.zip && \
+  unzip -q /tmp/awscliv2.zip -d /tmp && \
+  /tmp/aws/install && \
+  rm -rf /tmp/aws /tmp/awscliv2.zip
 
 # Set up non-root user
 USER node

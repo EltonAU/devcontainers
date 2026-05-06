@@ -5,7 +5,13 @@
   "description": "Sandboxed VS Code dev container with Claude Code and OpenAI Codex CLI both preinstalled. Outbound network locked to Anthropic, OpenAI, npm, GitHub, and VS Code endpoints. Credentials persist via named Docker volumes.",
   "documentationURL": "https://github.com/eltonau/devcontainers/blob/main/README.md",
   "licenseURL": "https://github.com/eltonau/devcontainers/blob/main/LICENSE",
-  "options": {},
+  "options": {
+    "projectId": {
+      "type": "string",
+      "description": "Unique identifier used in Docker volume names so credentials don't collide across projects. Lowercase letters, digits, hyphens. Example: 'my-app'.",
+      "default": "myproject"
+    }
+  },
   "platforms": [
     "any"
   ],
