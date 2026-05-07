@@ -43,6 +43,7 @@ for template_dir in "$SRC_DIR"/*/; do
     domain_block=""
     if [ -s "$fragment" ]; then
         NL=$'\n'
+        # shellcheck disable=SC1003 # intentional: backslash + newline literal for line-continuation in generated script
         BS_NL='\'$'\n'
         domain_block="for domain in ${BS_NL}"
         while IFS= read -r line; do
@@ -57,12 +58,13 @@ for template_dir in "$SRC_DIR"/*/; do
         domain_block+="        exit 1${NL}"
         domain_block+="    fi${NL}"
         domain_block+="    while read -r ip; do${NL}"
+        # shellcheck disable=SC2016 # intentional: $ip must remain unexpanded — it's a literal in the generated script
         domain_block+='        if [[ ! "$ip" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then'"${NL}"
         domain_block+="            echo \"ERROR: Invalid IP from DNS for \$domain: \$ip\"${NL}"
         domain_block+="            exit 1${NL}"
         domain_block+="        fi${NL}"
         domain_block+="        echo \"Adding \$ip for \$domain\"${NL}"
-        domain_block+="        ipset add allowed-domains \"\$ip\"${NL}"
+        domain_block+="        ipset add -exist allowed-domains \"\$ip\"${NL}"
         domain_block+="    done < <(echo \"\$ips\")${NL}"
         domain_block+="done${NL}"
     fi

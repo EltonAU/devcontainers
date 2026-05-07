@@ -1,6 +1,6 @@
 {
   "id": "csharp",
-  "version": "2.0.0",
+  "version": "0.1.0",
   "name": "Claude/Codex C#",
   "description": "Sandboxed devcontainer with Claude Code and OpenAI Codex CLI both preinstalled, plus .NET 9.0 SDK and C# tooling. Outbound network locked to Anthropic, OpenAI, npm, GitHub, AWS, NuGet, and VS Code endpoints; DNS scoped to the Docker resolver; SSH and host network blocked. Credentials persist via per-project named Docker volumes.",
   "documentationURL": "https://github.com/eltonau/devcontainers/blob/main/README.md",

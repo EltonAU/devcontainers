@@ -30,8 +30,28 @@ else
     echo "No Docker DNS rules to restore"
 fi
 
-iptables -A OUTPUT -p udp --dport 53 -d 127.0.0.11 -j ACCEPT
-iptables -A INPUT -p udp --sport 53 -s 127.0.0.11 -j ACCEPT
+# DNS lockdown: allow only to nameservers actually in use according to
+# /etc/resolv.conf. Different Docker setups use different DNS endpoints
+# (Linux native uses 127.0.0.11 embedded resolver; Docker Desktop on
+# macOS/Windows uses an internal forwarder like 192.168.65.7). For the
+# 127.0.0.11 case Docker NATs the destination before the filter chain runs,
+# so we also need a conntrack --ctorigdst match.
+DNS_SERVERS=$(awk '/^nameserver / {print $2}' /etc/resolv.conf)
+if [ -z "$DNS_SERVERS" ]; then
+    echo "ERROR: No nameservers found in /etc/resolv.conf"
+    exit 1
+fi
+for ns in $DNS_SERVERS; do
+    echo "Allowing DNS to $ns"
+    iptables -A OUTPUT -p udp --dport 53 -d "$ns" -j ACCEPT
+    iptables -A INPUT  -p udp --sport 53 -s "$ns" -j ACCEPT
+    iptables -A OUTPUT -p tcp --dport 53 -d "$ns" -j ACCEPT
+    iptables -A INPUT  -p tcp --sport 53 -s "$ns" -j ACCEPT
+    if [ "$ns" = "127.0.0.11" ]; then
+        iptables -A OUTPUT -p udp --dport 53 -m conntrack --ctorigdst 127.0.0.11 -j ACCEPT
+        iptables -A OUTPUT -p tcp --dport 53 -m conntrack --ctorigdst 127.0.0.11 -j ACCEPT
+    fi
+done
 iptables -A INPUT -i lo -j ACCEPT
 iptables -A OUTPUT -o lo -j ACCEPT
 
@@ -56,7 +76,7 @@ while read -r cidr; do
         exit 1
     fi
     echo "Adding GitHub range $cidr"
-    ipset add allowed-domains "$cidr"
+    ipset add -exist allowed-domains "$cidr"
 done < <(echo "$gh_ranges" | jq -r '(.web + .api + .git)[]' | aggregate -q)
 
 echo "Fetching AWS IP ranges..."
@@ -75,7 +95,7 @@ while read -r cidr; do
         echo "ERROR: Invalid CIDR from AWS ip-ranges: $cidr"
         exit 1
     fi
-    ipset add allowed-domains "$cidr"
+    ipset add -exist allowed-domains "$cidr"
 done < <(echo "$aws_ranges" | jq -r '.prefixes[] | select(.service=="AMAZON") | .ip_prefix' | aggregate -q)
 
 for domain in \
@@ -84,9 +104,6 @@ for domain in \
     "api.openai.com" \
     "auth.openai.com" \
     "chatgpt.com" \
-    "sentry.io" \
-    "statsig.anthropic.com" \
-    "statsig.com" \
     "marketplace.visualstudio.com" \
     "vscode.blob.core.windows.net" \
     "update.code.visualstudio.com" \
@@ -104,7 +121,7 @@ for domain in \
             exit 1
         fi
         echo "Adding $ip for $domain"
-        ipset add allowed-domains "$ip"
+        ipset add -exist allowed-domains "$ip"
     done < <(echo "$ips")
 done
 
