@@ -42,6 +42,8 @@ Then open the project in **any IDE** that supports devcontainers — VS Code, Ri
 
 ### First-time login (per project, per machine)
 
+> **Important:** the `projectId` you supplied at template-apply time is what makes credential volumes per-project. If you accepted the default `CHANGE-ME-PER-PROJECT`, every project on this machine will share the same volumes — fix it before logging in by re-applying the template with a real `projectId`.
+
 The first container you open for a project on a machine has empty credential volumes. Inside the container terminal, set up whichever you'll use:
 
 **Claude Code:**
@@ -143,6 +145,7 @@ This sandbox makes a few deliberate choices worth surfacing:
 - **Egress allowlist via iptables + ipset.** DNS is restricted to Docker's embedded resolver (no exfiltration via arbitrary DNS servers). Outbound SSH is blocked. The host-network range is not allowed. AWS service ranges are fetched at firewall init from `ip-ranges.amazonaws.com` and added to the allowlist. The full agent flow (WebFetch, WebSearch, API calls) routes through Anthropic/OpenAI, both already allowlisted.
 - **Read-only AWS and GitHub by IAM/PAT scope.** Read-only-ness is enforced server-side, not by the container. Static AWS keys are paired with the AWS-managed `ReadOnlyAccess` policy. GitHub access uses a fine-grained read-only PAT.
 - **Build-time template composition.** Shared content (`Dockerfile`, firewall base script) lives in `src/_shared/`; each template overlays a per-template firewall fragment. The release workflow assembles `build/<template>/` and publishes from there. This keeps a single source of truth for the parts every template shares.
+- **AWS allowlist is broad by design.** The firewall allows the full `service==AMAZON` set from `ip-ranges.amazonaws.com`, not a curated subset of services or regions. This means CloudFront-hosted third-party content and arbitrary AWS-hosted services are reachable. Read-only IAM scope on the supplied keys is the primary blast-radius limit; tightening to specific services/regions is possible but adds maintenance, and a stronger policy would require an SNI-aware egress proxy.
 
 ## License
 

@@ -1,11 +1,11 @@
-FROM node:20.20.2
+FROM node:24.15.0
 
 ARG TZ
 ENV TZ="$TZ"
 
 # Pinned to specific versions for reproducible builds. Bump intentionally.
-ARG CLAUDE_CODE_VERSION=2.1.121
-ARG CODEX_VERSION=0.125.0
+ARG CLAUDE_CODE_VERSION=2.1.132
+ARG CODEX_VERSION=0.128.0
 
 # Install basic development tools and iptables/ipset
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -58,13 +58,13 @@ RUN mkdir -p /workspace \
 
 WORKDIR /workspace
 
-ARG GIT_DELTA_VERSION=0.18.2
+ARG GIT_DELTA_VERSION=0.19.2
 RUN ARCH=$(dpkg --print-architecture) && \
   wget "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   sudo dpkg -i "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb" && \
   rm "git-delta_${GIT_DELTA_VERSION}_${ARCH}.deb"
 
-ARG AWS_CLI_VERSION=2.34.43
+ARG AWS_CLI_VERSION=2.34.44
 RUN ARCH_RAW=$(dpkg --print-architecture) && \
   case "$ARCH_RAW" in \
     amd64) AWS_ARCH=x86_64 ;; \
@@ -88,7 +88,7 @@ ENV EDITOR=nano
 ENV VISUAL=nano
 
 # Default powerline10k theme
-ARG ZSH_IN_DOCKER_VERSION=1.2.0
+ARG ZSH_IN_DOCKER_VERSION=1.2.1
 RUN sh -c "$(wget -O- https://github.com/deluan/zsh-in-docker/releases/download/v${ZSH_IN_DOCKER_VERSION}/zsh-in-docker.sh)" -- \
   -p git \
   -p fzf \
@@ -107,3 +107,11 @@ RUN chmod +x /usr/local/bin/init-firewall.sh && \
   echo "node ALL=(root) NOPASSWD: /usr/local/bin/init-firewall.sh" > /etc/sudoers.d/node-firewall && \
   chmod 0440 /etc/sudoers.d/node-firewall
 USER node
+
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+USER root
+RUN chmod +x /usr/local/bin/entrypoint.sh
+USER node
+
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+CMD ["sleep", "infinity"]

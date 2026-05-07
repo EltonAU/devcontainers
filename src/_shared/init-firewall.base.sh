@@ -12,6 +12,15 @@ iptables -t mangle -F
 iptables -t mangle -X
 ipset destroy allowed-domains 2>/dev/null || true
 
+# IPv6: deny by default; we do not allowlist any v6 traffic.
+ip6tables -F
+ip6tables -X
+ip6tables -P INPUT DROP
+ip6tables -P FORWARD DROP
+ip6tables -P OUTPUT DROP
+ip6tables -A INPUT -i lo -j ACCEPT
+ip6tables -A OUTPUT -o lo -j ACCEPT
+
 if [ -n "$DOCKER_DNS_RULES" ]; then
     echo "Restoring Docker DNS rules..."
     iptables -t nat -N DOCKER_OUTPUT 2>/dev/null || true

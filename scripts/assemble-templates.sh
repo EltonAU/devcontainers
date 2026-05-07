@@ -31,6 +31,8 @@ for template_dir in "$SRC_DIR"/*/; do
     cp "$template_dir/devcontainer-template.json" "$out/devcontainer-template.json"
     cp "$template_dir/.devcontainer/devcontainer.json" "$out/.devcontainer/devcontainer.json"
     cp "$SHARED_DIR/Dockerfile" "$out/.devcontainer/Dockerfile"
+    cp "$SHARED_DIR/entrypoint.sh" "$out/.devcontainer/entrypoint.sh"
+    chmod +x "$out/.devcontainer/entrypoint.sh"
 
     fragment="$template_dir/.devcontainer/init-firewall.fragment"
     if [ ! -f "$fragment" ]; then

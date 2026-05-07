@@ -41,13 +41,16 @@ jobs:
             shellcheck "$f"
           done
 
-      - name: Docker build (each template)
+      - name: Install devcontainer CLI
+        run: npm install -g @devcontainers/cli
+
+      - name: Devcontainer build (each template)
         run: |
           set -euo pipefail
-          for d in build/*/.devcontainer; do
-            template=$(basename "$(dirname "$d")")
+          for d in build/*/; do
+            template=$(basename "$d")
             echo "Building $template..."
-            docker build -t "devcontainer-test:$template" "$d"
+            devcontainer build --workspace-folder "$d" --image-name "devcontainer-test:$template"
           done
 
       - name: Firewall smoke test (base)
@@ -70,5 +73,34 @@ jobs:
               if dig +time=2 +tries=1 @8.8.8.8 google.com >/dev/null 2>&1; then
                 echo "FAIL: DNS to 8.8.8.8 succeeded"; exit 1
               fi
+              if curl --connect-timeout 5 -6 -fsS https://ipv6.google.com >/dev/null 2>&1; then
+                echo "FAIL: IPv6 egress reachable"; exit 1
+              fi
               echo "Smoke test passed"
+            '
+
+      - name: Firewall smoke test (csharp)
+        run: |
+          set -euo pipefail
+          docker run --rm \
+            --cap-add=NET_ADMIN --cap-add=NET_RAW \
+            --entrypoint /bin/bash \
+            devcontainer-test:csharp \
+            -c '
+              sudo /usr/local/bin/init-firewall.sh
+              # Allowed
+              curl --connect-timeout 5 -fsS https://api.github.com/zen >/dev/null
+              curl --connect-timeout 5 -fsS https://sts.amazonaws.com >/dev/null
+              curl --connect-timeout 5 -fsS https://api.nuget.org/v3/index.json >/dev/null
+              # Blocked
+              if curl --connect-timeout 5 -fsS https://example.com >/dev/null 2>&1; then
+                echo "FAIL: example.com reachable"; exit 1
+              fi
+              if dig +time=2 +tries=1 @8.8.8.8 google.com >/dev/null 2>&1; then
+                echo "FAIL: DNS to 8.8.8.8 succeeded"; exit 1
+              fi
+              if curl --connect-timeout 5 -6 -fsS https://ipv6.google.com >/dev/null 2>&1; then
+                echo "FAIL: IPv6 egress reachable"; exit 1
+              fi
+              echo "csharp smoke test passed"
             '

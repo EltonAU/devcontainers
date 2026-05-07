@@ -1,15 +1,15 @@
 {
   "id": "csharp",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "name": "Claude/Codex C#",
-  "description": "Sandboxed VS Code dev container with Claude Code and OpenAI Codex CLI both preinstalled, plus .NET 9.0 SDK and C# tooling. Outbound network locked to Anthropic, OpenAI, npm, GitHub, NuGet, and VS Code endpoints. Credentials persist via named Docker volumes.",
+  "description": "Sandboxed devcontainer with Claude Code and OpenAI Codex CLI both preinstalled, plus .NET 9.0 SDK and C# tooling. Outbound network locked to Anthropic, OpenAI, npm, GitHub, AWS, NuGet, and VS Code endpoints; DNS scoped to the Docker resolver; SSH and host network blocked. Credentials persist via per-project named Docker volumes.",
   "documentationURL": "https://github.com/eltonau/devcontainers/blob/main/README.md",
   "licenseURL": "https://github.com/eltonau/devcontainers/blob/main/LICENSE",
   "options": {
     "projectId": {
       "type": "string",
-      "description": "Unique identifier used in Docker volume names so credentials don't collide across projects. Lowercase letters, digits, hyphens. Example: 'my-app'.",
-      "default": "myproject"
+      "description": "REQUIRED: unique per project. Becomes part of Docker volume names so credentials don't collide across projects. Use lowercase letters, digits, hyphens. If you leave the default, multiple projects WILL share volumes.",
+      "default": "CHANGE-ME-PER-PROJECT"
     }
   },
   "platforms": [

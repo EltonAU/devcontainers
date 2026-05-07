@@ -10,7 +10,6 @@
   "containerEnv": {
     "AWS_PROFILE": "readonly"
   },
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
   "remoteUser": "node",
   "containerUser": "node",
   "workspaceFolder": "/workspace",

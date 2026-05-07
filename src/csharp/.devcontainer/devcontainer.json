@@ -11,12 +11,11 @@
     "AWS_PROFILE": "readonly"
   },
   "features": {
-    "ghcr.io/devcontainers/features/dotnet:2": {
+    "ghcr.io/devcontainers/features/dotnet@sha256:0fc16547ed4db6d7ff2a9f5981d2b93eb314e568affb9958029ad794f1f9a093": {
       "version": "9.0",
       "installUsingApt": false
     }
   },
-  "postStartCommand": "sudo /usr/local/bin/init-firewall.sh",
   "remoteUser": "node",
   "containerUser": "node",
   "workspaceFolder": "/workspace",
